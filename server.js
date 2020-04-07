@@ -7,6 +7,8 @@ var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var port = 3000;
 
+var players = [];
+
 http.listen(port, function(){
     console.log(`listening on port ${port}...`);
 })
@@ -39,11 +41,24 @@ io.on('connection', function(socket){
     }
 
     socket.on('disconnect', function(){
-        log("disconnected")
+        log("Client disconnected" + JSON.stringify(players[socket.id]));
+
+        if('undefined' !== typeof players[socket.id] && players[socket.id]){
+            var username = players[socket.id].username;
+            var room = players[socket.id].room;
+            var payload={
+                username: username,
+                socket_id: socket.id
+            };
+            delete players[socket.id];
+            io.in(roomObject).emit('player_disconnected ', payload);
+        }
     });
 
     socket.on('join_room', function(payload){
         log("server received join room command", payload);
+
+
         if(('undefined' === typeof payload || !payload)){
             var error_message = 'join_room had no payload, command aborted';
             log(error_message);
@@ -81,29 +96,48 @@ io.on('connection', function(socket){
             return;
 
         }
+        players[socket.id] = {};
+        players[socket.id].username = username;
+        players[socket.id].room = room;
+
+
 
         socket.join(room);
         var roomObject = io.sockets.adapter.rooms[room];
-        if(('undefined' === typeof roomObject || !roomObject)){
-            var error_message = 'join_room could not create a room (internal error), command aborted';
-            log(error_message);
-            socket.emit('join_room_response', {
-                                                result: 'fail',
-                                                message: error_message
+        // if(('undefined' === typeof roomObject || !roomObject)){
+        //     var error_message = 'join_room could not create a room (internal error), command aborted';
+        //     log(error_message);
+        //     socket.emit('join_room_response', {
+        //                                         result: 'fail',
+        //                                         message: error_message
 
-            });
-            return;
+        //     });
+        //     return;
 
-        }
+        // }
 
         var numClients = roomObject.length;
         var success_data = {
                                 result:success_data,
                                 room: room,
                                 username: username,
+                                socket_id: socket.id,
                                 membership: (numClients + 1)
                             };
-        io.sockets.in(room).emit('join_room_response', success_data);
+        io.in(room).emit('join_room_response', success_data);
+
+        for(var socket_in_room in roomObject.sockets){
+            var success_data = {
+                result:success_data,
+                room: room,
+                username: players[socket_in_room].username,
+                socket_id: socket_in_room,
+                membership: (numClients + 1)
+            };
+            socket.emit('join_room_response', success_data);
+
+        }
+        log('join_room success');
         log('Room ' + room + ' was just joined by ' + username);
 
     });
@@ -161,6 +195,62 @@ io.on('connection', function(socket){
 
         }
 
+        var success_data = {
+            result:'success',
+            room:room,
+            username: username,
+            message:message
+        }
+        io.sockets.in(room).emit('send_message_response', success_data);
+        log('Message sent to room ' + room + 'by ' + username + 'success_data: '+JSON.stringify(success_data));
+    });
+
+    socket.on('invite', function(payload){
+        log("invite received with", JSON.stringify(payload));
+        if(('undefined' === typeof payload || !payload)){
+            var error_message = 'invite had no payload, command aborted';
+            log(error_message);
+            socket.emit('invite_response', {
+                                                result: 'fail',
+                                                message: error_message
+            
+
+            });
+            return;
+
+        }
+
+        var username = players[socket.id].username;
+        if(('undefined' === typeof username || !username)){
+            var error_message = 'invite cant identify who sent the message, command aborted';
+            log(error_message);
+            socket.emit('invite_response', {
+                                                result: 'fail',
+                                                message: error_message
+
+            });
+            return;
+
+        }
+
+        var requested_user = payload.requested_user;
+        if(('undefined' === typeof requested_user || !requested_user)){
+            var error_message = 'invite did not specify a requested_user, command aborted';
+            log(error_message);
+            socket.emit('send_message_response', {
+                                                result: 'fail',
+                                                message: error_message
+
+            });
+            return;
+
+        }
+
+        var room = players[socket.id].room;
+        var roomObject = io.sockets.adapter.rooms[room];
+        if(roomObject.sockets.hasOwnProperty(requested_user)){
+            
+        }
         var success_data = {
             result:'success',
             room:room,
