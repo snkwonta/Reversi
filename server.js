@@ -269,4 +269,69 @@ io.on('connection', function(socket){
         log('invite successful');
     });
 
+    socket.on('uninvite', function(payload){
+        log("uninvite received with", JSON.stringify(payload));
+        if(('undefined' === typeof payload || !payload)){
+            var error_message = 'uninvite had no payload, command aborted';
+            log(error_message);
+            socket.emit('uninvite_response', {
+                                                result: 'fail',
+                                                message: error_message
+                                            });
+            return;
+
+        }
+
+        var username = players[socket.id].username;
+        if(('undefined' === typeof username || !username)){
+            var error_message = 'uninvite cant identify who sent the message, command aborted';
+            log(error_message);
+            socket.emit('uninvite_response', {
+                                                result: 'fail',
+                                                message: error_message
+                                            });
+            return;
+
+        }
+
+        var requested_user = payload.requested_user;
+        if(('undefined' === typeof requested_user || !requested_user)){
+            var error_message = 'uninvite did not specify a requested_user, command aborted';
+            log(error_message);
+            socket.emit('uninvite_response', {
+                                                result: 'fail',
+                                                message: error_message
+
+                                            });
+            return;
+
+        }
+
+        var room = players[socket.id].room;
+        var roomObject = io.sockets.adapter.rooms[room];
+        if(!roomObject.sockets.hasOwnProperty(requested_user)){
+            var error_message = 'invite requesred a user that was  ot in the room, command aborted';
+            log(error_message);
+            socket.emit('uninvite_response', {
+                                                result: 'fail',
+                                                message: error_message
+
+                                            });
+            return;
+        }
+        var success_data = {
+            result: 'success',
+            socket_id: requested_user
+        }
+        socket.emit('uninvite_response', success_data);
+
+        var success_data = {
+            result: 'success',
+            socket_id: socket.id
+        }
+        socket.to(requested_user).emit('uninvited', success_data);
+        log('uninvite successful');
+    });
+
+
 });
