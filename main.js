@@ -20,9 +20,9 @@ if('undefined' == typeof username || !username){
     username= (namess[Math.floor((Math.random() * 10))] + "-" + namess[Math.floor((Math.random() * 10))] + "-" + namess[Math.floor((Math.random() * 10))]);
 }
 
-var chatroom = getURLParam('game_id');
-if('undefined' == typeof chatroom || !chatroom){
-    chatroom = 'Lobby';
+var chat_room = getURLParam('game_id');
+if('undefined' == typeof chat_room || !chat_room){
+    chat_room = 'Lobby';
 }
 
 
@@ -33,7 +33,7 @@ socket.on('log',function(array){
 });
 
 socket.on('join_room_response', function(payload){
-    if(payload.result=='fail'){
+    if(payload.result== 'fail'){
         alert(payload.message);
         return;
     }
@@ -95,30 +95,21 @@ socket.on('player_disconnected', function(payload){
     var dom_elements = $('.socket_' + payload.socket.id);
     if(dom_elements.length != 0){
         dom_elements.slideUp(1000);
-
-
-    }else {
-        var cButton=makeInviteButton();
-        $('.socket_' + payload.socket_id+' button').replaceWith(cButton);
-        dom_elements.slideDown(1000);
     }
 
     var newHTML = '<p>' + payload.username + ' has left the lobby </p>';
     var newNode = $(newHTML);
     newNode.hide();
     $('#messages').append(newNode);
-    newNode.slidedown(1000);
-
-    $('#messages').append('<p>New user has joined the room: ' + payload.username+'</p>');
-    socket.emit('invite', payload);
-
+    newNode.slideDown(1000);
 
 });
 
 function invite(who){
     var payload = {};
     payload.requested_user = who;
-    console.log('*** Client log message: \'invite\' payload' + JSON.stringify(payload))
+    console.log('***Client Log Message: \'invite\' payload: ' + JSON.stringify(payload));
+    socket.emit('invite', payload);
 }
 
 socket.on('invite_response', function(payload){
@@ -126,8 +117,8 @@ socket.on('invite_response', function(payload){
         alert(payload.message);
         return;
     }
-    var newNode = makeInviteButton();
-    $('.socket_' + payload.socket_id+'button').replaceWith(newnode);
+    var newNode = makeInvitedButton();
+    $('.socket_'+payload.socket_id+' button').replaceWith(newNode);    
 });
 
 socket.on('invited', function(payload){
@@ -136,9 +127,8 @@ socket.on('invited', function(payload){
         return;
     }
     var newNode = makePlayButton();
-    $('.socket_' + payload.socket_id+'button').replaceWith(newnode);
+    $('.socket_'+payload.socket_id+' button').replaceWith(newNode);    
 });
-
 socket.on('send_message_response', function(payload){
     if(payload.result=='fail'){
         alert(payload.message);
@@ -151,7 +141,7 @@ socket.on('send_message_response', function(payload){
 
 function send_message(){
     var payload={};
-    payload.room=chatroom;
+    payload.room=chat_room;
     payload.username = username;
     payload.message=$('#send_message_holder').val();
     console.log('***Client Log message: \send message\' payload: '+JSON.stringify(payload));
@@ -161,29 +151,28 @@ function send_message(){
 }
 
 function makeInviteButton(socket_id){
-    var newHTML='<button type=\'button\' class=\'btn btn-outline-primary\'> Invite </button>';
-    var newNode=$(newHTML);
+    var newHTML='<button type=\'button\' class=\'btn btn-outline-primary\'>Invite</button>';
+    var newNode = $(newHTML);
     newNode.click(function(){
         invite(socket_id);
-
     });
     return(newNode);
 }
 
 function makeInvitedButton(){
-    var newHTML='<button type=\'button\' class=\'btn btn-primary\'> Invited </button>';
-    var newNode=$(newHTML);
+    var newHTML='<button type=\'button\' class=\'btn btn-primary\'>Invited</button>';
+    var newNode = $(newHTML);
     return(newNode);
 }
 
 function makePlayButton(){
-    var newHTML='<button type=\'button\' class=\'btn btn-success\'> Play </button>';
+    var newHTML='<button type=\'button\' class=\'btn btn-success\'>Play</button>';
     var newNode=$(newHTML);
     return(newNode);
 }
 
 function makeEngageButton(){
-    var newHTML='<button type=\'button\' class=\'btn btn-danger\'> Engaged </button>';
+    var newHTML='<button type=\'button\' class=\'btn btn-danger\'>Engaged</button>';
     var newNode=$(newHTML);
     return(newNode);
 }
@@ -191,7 +180,7 @@ function makeEngageButton(){
 
 $(function(){
     var payload={};
-    payload.room=chatroom;
+    payload.room=chat_room;
     payload.username = username;
 
     console.log('***Client Log message: \join_room\' payload: '+JSON.stringify(payload));

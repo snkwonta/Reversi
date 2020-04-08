@@ -51,7 +51,7 @@ io.on('connection', function(socket){
                 socket_id: socket.id
             };
             delete players[socket.id];
-            io.in(roomObject).emit('player_disconnected ', payload);
+            io.in(room).emit('player_disconnected ', payload);
         }
     });
 
@@ -213,9 +213,7 @@ io.on('connection', function(socket){
             socket.emit('invite_response', {
                                                 result: 'fail',
                                                 message: error_message
-            
-
-            });
+                                            });
             return;
 
         }
@@ -227,8 +225,7 @@ io.on('connection', function(socket){
             socket.emit('invite_response', {
                                                 result: 'fail',
                                                 message: error_message
-
-            });
+                                            });
             return;
 
         }
@@ -237,28 +234,39 @@ io.on('connection', function(socket){
         if(('undefined' === typeof requested_user || !requested_user)){
             var error_message = 'invite did not specify a requested_user, command aborted';
             log(error_message);
-            socket.emit('send_message_response', {
+            socket.emit('invite_response', {
                                                 result: 'fail',
                                                 message: error_message
 
-            });
+                                            });
             return;
 
         }
 
         var room = players[socket.id].room;
         var roomObject = io.sockets.adapter.rooms[room];
-        if(roomObject.sockets.hasOwnProperty(requested_user)){
-            
+        if(!roomObject.sockets.hasOwnProperty(requested_user)){
+            var error_message = 'invite requesred a user that was  ot in the room, command aborted';
+            log(error_message);
+            socket.emit('invite_response', {
+                                                result: 'fail',
+                                                message: error_message
+
+                                            });
+            return;
         }
         var success_data = {
-            result:'success',
-            room:room,
-            username: username,
-            message:message
+            result: 'success',
+            socket_id: requested_user
         }
-        io.sockets.in(room).emit('send_message_response', success_data);
-        log('Message sent to room ' + room + 'by ' + username);
+        socket.emit('invite_response', success_data);
+
+        var success_data = {
+            result: 'success',
+            socket_id: socket.id
+        }
+        socket.to(requested_user).emit('invited', success_data);
+        log('invite successful');
     });
 
 });
