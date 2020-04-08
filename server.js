@@ -169,7 +169,7 @@ io.on('connection', function(socket){
 
         }
 
-        var username = payload.username;
+        var username = players[socket.id].username;
         if(('undefined' === typeof username || !username)){
             var error_message = 'send_message did not specify a username, command aborted';
             log(error_message);
@@ -201,7 +201,7 @@ io.on('connection', function(socket){
             username: username,
             message:message
         }
-        io.sockets.in(room).emit('send_message_response', success_data);
+        io.in(room).emit('send_message_response', success_data);
         log('Message sent to room ' + room + 'by ' + username + 'success_data: '+JSON.stringify(success_data));
     });
 
@@ -331,6 +331,78 @@ io.on('connection', function(socket){
         }
         socket.to(requested_user).emit('uninvited', success_data);
         log('uninvite successful');
+    });
+
+    socket.on('game_start', function(payload){
+        log("uninvite received with", JSON.stringify(payload));
+        if(('undefined' === typeof payload || !payload)){
+            var error_message = 'game_start had no payload, command aborted';
+            log(error_message);
+            socket.emit('game_start_response', {
+                                                result: 'fail',
+                                                message: error_message
+                                            });
+            return;
+
+        }
+
+        var username = players[socket.id].username;
+        if(('undefined' === typeof username || !username)){
+            var error_message = 'game_start cant identify who sent the message, command aborted';
+            log(error_message);
+            socket.emit('game_start_response', {
+                                                result: 'fail',
+                                                message: error_message
+                                            });
+            return;
+
+        }
+
+        var requested_user = payload.requested_user;
+        if(('undefined' === typeof requested_user || !requested_user)){
+            var error_message = 'game_start did not specify a requested_user, command aborted';
+            log(error_message);
+            socket.emit('game_start_response', {
+                                                result: 'fail',
+                                                message: error_message
+
+                                            });
+            return;
+
+        }
+
+        var room = players[socket.id].room;
+        var roomObject = io.sockets.adapter.rooms[room];
+        //make sure someone is in the room
+        if(!roomObject.sockets.hasOwnProperty(requested_user)){
+            var error_message = 'game_start requesred a user that was  ot in the room, command aborted';
+            log(error_message);
+            socket.emit('game_start_response', {
+                                                result: 'fail',
+                                                message: error_message
+
+                                            });
+            return;
+        }
+
+        //everything good need game_id
+        var game_id = Math.floor((1+Math.random())*0x1000).toString(16).substring(1);
+        var success_data = {
+            result: 'success',
+            socket_id: requested_user,
+            game_id: game_id
+        }
+        socket.emit('game_start_response', success_data);
+
+        //tell other player to play
+
+        var success_data = {
+            result: 'success',
+            socket_id: socket.id,
+            game_id: game_id
+        }
+        socket.to(requested_user).emit('game_start_response', success_data);
+        log('game_start successful');
     });
 
 
