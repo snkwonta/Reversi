@@ -284,6 +284,7 @@ socket.on('game_update', function(payload){
     }
 
     $('#my_color').html('<h3 id="my_color">I am '+my_color+'</h3>');
+    $('#my_color').append('<h4>It is '+payload.game.whose_turn+'\'s turn</h4>')
 
     var whitesum = 0;
     var blacksum = 0;
@@ -319,27 +320,32 @@ socket.on('game_update', function(payload){
                 } else{
                     $('#'+row+'_'+column).html('<img src="chinese-checkers.png" alt="error"/>');
                 }
+            }
+            $('#'+row+'_'+column).off('click');
+            $('#'+row+'_'+column).removeClass('hovered_over');
 
-                $('#'+row+'_'+column).off('click');
-                if((board[row][column]) == ' '){
-                    $('#'+row+'_'+column).addClass('hovered_over');
-                    $('#'+row+'_'+column).click(function(r,c){
-                        return function(){
-                            var payload = {};
-                            payload.row = r;
-                            payload.column = c;
-                            payload.color= my_color;
-                            console.log('*** Client Log Message \'play_token\' payload: ' + JSON.stringify(payload));
-                            socket.emit('play_token', payload);
-                        };
-                    }(row,column));
-                } else{
-                    $('#'+row+'_'+column).removeClass('hovered_over');
+            if(payload.game.whose_turn === my_color){
+                if(payload.game.legal_moves[row][column] === my_color.substring(0,1)){
+                    if((board[row][column]) == ' '){
+                        $('#'+row+'_'+column).addClass('hovered_over');
+                        $('#'+row+'_'+column).click(function(r,c){
+                            return function(){
+                                var payload = {};
+                                payload.row = r;
+                                payload.column = c;
+                                payload.color= my_color;
+                                console.log('*** Client Log Message \'play_token\' payload: ' + JSON.stringify(payload));
+                                socket.emit('play_token', payload);
+                            };
+                        }(row,column));
+                    } 
+
                 }
+            }
+                
 
             }
         }
-    }
 
     $('#blacksum').html(blacksum);
     $('#whitesum').html(whitesum);
