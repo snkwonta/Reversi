@@ -749,7 +749,7 @@ function send_game_update(socket, game_id, message){
     //make sure only 2 people are in game room
     //assign socket color
     if((games[game_id].player_white.socket != socket.id) && games[game_id].player_black.socket != socket.id){
-        console.log('Player is not assigned a color: ' + socket.id);
+        //console.log('Player is not assigned a color: ' + socket.id);
         if((games[game_id].player_black.socket != '') && (games[game_id].player_white.socket != '')){
             games[game_id].player_white.socket = '';
             games[game_id].player_black.socket = '';
